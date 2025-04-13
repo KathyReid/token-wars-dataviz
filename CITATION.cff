@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this data visualisation, please cite it as follows:"
+authors:
+- family-names: "Reid"
+  given-names: "Kathy"
+  orcid: "https://orcid.org/0000-0001-9205-0942"
+title: "LLM Models: Number of training tokens and parameter size by date"
+version: 1.0
+date-released: 2025-04-13
+url: "https://github.com/KathyReid/token-wars-dataviz
