@@ -6,8 +6,8 @@ from datetime import datetime
 plt.rcParams.update({
     "lines.color": "white",
     "patch.edgecolor": "white",
-    "text.color": "black",
-    "axes.facecolor": "white",
+    "text.color": "white",
+    "axes.facecolor": "black",
     "axes.edgecolor": "lightgray",
     "axes.labelcolor": "white",
     "xtick.color": "white",
