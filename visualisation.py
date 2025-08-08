@@ -3,6 +3,21 @@ import numpy as np
 import matplotlib.dates as mdates
 from datetime import datetime
 
+plt.rcParams.update({
+    "lines.color": "white",
+    "patch.edgecolor": "white",
+    "text.color": "black",
+    "axes.facecolor": "white",
+    "axes.edgecolor": "lightgray",
+    "axes.labelcolor": "white",
+    "xtick.color": "white",
+    "ytick.color": "white",
+    "grid.color": "lightgray",
+    "figure.facecolor": "black",
+    "figure.edgecolor": "black",
+    "savefig.facecolor": "black",
+    "savefig.edgecolor": "black"})
+
 # date, billions of tokens, billions of parameters
 # Define the data (excluding models with N/A values)
 models = {
