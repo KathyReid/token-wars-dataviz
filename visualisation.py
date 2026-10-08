@@ -3,20 +3,47 @@ import numpy as np
 import matplotlib.dates as mdates
 from datetime import datetime
 
-plt.rcParams.update({
-    "lines.color": "white",
-    "patch.edgecolor": "white",
-    "text.color": "white",
-    "axes.facecolor": "black",
-    "axes.edgecolor": "lightgray",
-    "axes.labelcolor": "white",
-    "xtick.color": "white",
-    "ytick.color": "white",
-    "grid.color": "lightgray",
-    "figure.facecolor": "black",
-    "figure.edgecolor": "black",
-    "savefig.facecolor": "black",
-    "savefig.edgecolor": "black"})
+# Colour themes: each chart is rendered once per theme
+THEMES = {
+    'dark': {
+        'rc': {
+            "lines.color": "white",
+            "patch.edgecolor": "white",
+            "text.color": "white",
+            "axes.facecolor": "black",
+            "axes.edgecolor": "lightgray",
+            "axes.labelcolor": "white",
+            "xtick.color": "white",
+            "ytick.color": "white",
+            "grid.color": "lightgray",
+            "figure.facecolor": "black",
+            "figure.edgecolor": "black",
+            "savefig.facecolor": "black",
+            "savefig.edgecolor": "black"},
+        'bubble_edge': 'white',
+        'zero_line': 'yellow',
+        'filename': 'training-tokens.png',
+    },
+    'light': {
+        'rc': {
+            "lines.color": "black",
+            "patch.edgecolor": "black",
+            "text.color": "black",
+            "axes.facecolor": "white",
+            "axes.edgecolor": "dimgray",
+            "axes.labelcolor": "black",
+            "xtick.color": "black",
+            "ytick.color": "black",
+            "grid.color": "darkgray",
+            "figure.facecolor": "white",
+            "figure.edgecolor": "white",
+            "savefig.facecolor": "white",
+            "savefig.edgecolor": "white"},
+        'bubble_edge': 'dimgray',
+        'zero_line': 'darkorange',
+        'filename': 'training-tokens-light.png',
+    },
+}
 
 # date, billions of tokens, billions of parameters
 # Define the data (excluding models with N/A values)
@@ -38,7 +65,17 @@ models = {
     'Claude 3 Opus' : ('4 March 2024', 40000, 2000, '', 'https://www.anthropic.com/news/claude-3-family', 'Anthropic'),
     'Gemma 2-27B' : ('31 July 2024',13000,27, 'https://arxiv.org/abs/2408.00118', 'https://ai.google.dev/gemma/docs/core/model_card_2', 'Google AI'),
     'LLaMA 3-405B' : ('31 July 2024', 16550, 405, 'https://arxiv.org/abs/2407.21783', 'https://ai.meta.com/blog/meta-llama-3/', 'Meta AI'),
-    'GPT-5' : ('7 August 2025', 114000, 5000, 'https://lifearchitect.ai/gpt-5/', 'https://openai.com/index/introducing-gpt-5/', 'OpenAI')
+    'Claude Opus 4' : ('23 May 2025', 114000, 5000, 'https://lifearchitect.ai/gpt-5/', 'https://www.anthropic.com/news/claude-4', 'Anthropic'),
+    'GPT-5' : ('7 August 2025', 114000, 5000, 'https://lifearchitect.ai/gpt-5/', 'https://openai.com/index/introducing-gpt-5/', 'OpenAI'),
+    # Lower-bound estimate: Anthropic has not disclosed training tokens. 150T is the bottom of
+    # @scaling01's 150T-312T estimate (median 212T). ~8T params is an industry estimate reported by the FT.
+    'Claude Mythos 5 / Fable 5\n(lower-bound estimate)' : ('9 June 2026', 150000, 8000, 'https://x.com/scaling01/status/2061989029025853757', 'https://www.anthropic.com/news/claude-fable-5-mythos-5', 'Anthropic')
+}
+
+# Horizontal label offsets (points) for models whose labels would otherwise overlap
+label_x_offsets = {
+    'Claude Opus 4': -30,
+    'GPT-5': 30,
 }
 
 # Extract data and convert dates to datetime objects
@@ -62,63 +99,71 @@ for model, data in models.items():
     organisations.append(data[5])
     names.append(model)
 
-# Create the scatter plot
-plt.figure(figsize=(19.2, 10.8))
-plt.style.use('dark_background')
+def plot(theme):
+    plt.rcParams.update(plt.rcParamsDefault)
+    plt.rcParams.update(theme['rc'])
 
-# Scale the sizes to be visible but not overwhelming
-sizes = [p * 5 for p in params]  # Multiply by 5 to make sizes more visible
+    # Create the scatter plot
+    plt.figure(figsize=(19.2, 10.8))
 
-# Create scatter plot with datetime objects
-scatter = plt.scatter(dates, tokens, s=sizes, alpha=0.9, c=params, 
-                     cmap='plasma', edgecolor='white', linewidth=1)
+    # Scale the sizes to be visible but not overwhelming
+    sizes = [p * 5 for p in params]  # Multiply by 5 to make sizes more visible
 
-# Add labels for each point with line break between name and organization
-# Position labels based on parameter count - higher for larger bubbles
-for i, name in enumerate(names):
-    # Create label with line break
-    label = f"{name}"
+    # Create scatter plot with datetime objects
+    scatter = plt.scatter(dates, tokens, s=sizes, alpha=0.7, c=params, 
+                         cmap='plasma', edgecolor=theme['bubble_edge'], linewidth=1)
+
+    # Add labels for each point with line break between name and organization
+    # Position labels based on parameter count - higher for larger bubbles
+    for i, name in enumerate(names):
+        # Create label with line break
+        label = f"{name}"
     
-    # Calculate vertical offset based on parameter count
-    # Base offset of 10 pixels plus additional offset scaled by parameter count
-    # Taking the square root to avoid extreme offsets for very large parameter values
-    vertical_offset = 7 + np.sqrt(params[i]) * 1.0
+        # Calculate vertical offset based on parameter count
+        # Base offset of 10 pixels plus additional offset scaled by parameter count
+        # Taking the square root to avoid extreme offsets for very large parameter values
+        vertical_offset = 7 + np.sqrt(params[i]) * 1.0
     
-    # Add annotation with dynamic vertical positioning
-    plt.annotate(label, (dates[i], tokens[i]), 
-                xytext=(0, vertical_offset),  # 0 x offset (centered), dynamic y offset
-                textcoords='offset points',
-                fontsize=8,
-                ha='center',  # Horizontal alignment: center
-                va='bottom')  # Vertical alignment: bottom
+        # Add annotation with dynamic vertical positioning
+        plt.annotate(label, (dates[i], tokens[i]), 
+                    xytext=(label_x_offsets.get(name, 0), vertical_offset),  # x offset (default centred), dynamic y offset
+                    textcoords='offset points',
+                    fontsize=8,
+                    ha='center',  # Horizontal alignment: center
+                    va='bottom')  # Vertical alignment: bottom
 
-# Customize the plot
-plt.title('LLM Models: # of Training Tokens vs Release Year\n(Bubble size represents parameter count)',
-          fontsize=24, pad=20, fontfamily='Public Sans')
-plt.xlabel('Release Date', fontfamily='Public Sans', size=18)
-plt.ylabel('Training Tokens (Billions)', fontfamily='Public Sans', size=18)
+    # Customize the plot
+    plt.title('LLM Models: # of Training Tokens vs Release Year\n(Bubble size represents parameter count)',
+              fontsize=24, pad=20, fontfamily='Public Sans')
+    plt.xlabel('Release Date', fontfamily='Public Sans', size=18)
+    plt.ylabel('Training Tokens (Billions)', fontfamily='Public Sans', size=18)
 
-# Format the x-axis to use the desired date format
-plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %B %Y'))
+    # Format the x-axis to use the desired date format
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %B %Y'))
 
-# Set the x-axis to display nicely spaced dates
-plt.gca().xaxis.set_major_locator(mdates.YearLocator())
-plt.gcf().autofmt_xdate(rotation=45)  # Rotate date labels for better readability
+    # Set the x-axis to display nicely spaced dates
+    plt.gca().xaxis.set_major_locator(mdates.YearLocator())
+    plt.gcf().autofmt_xdate(rotation=45)  # Rotate date labels for better readability
 
-# Add a colorbar to show parameter scale
-cbar = plt.colorbar(scatter)
-cbar.set_label('Parameters (Billions)', rotation=270, labelpad=15, fontfamily='Public Sans', size=18)
+    # Add a colorbar to show parameter scale
+    cbar = plt.colorbar(scatter)
+    cbar.set_label('Parameters (Billions)', rotation=270, labelpad=15, fontfamily='Public Sans', size=18)
 
-# Adjust axes
-plt.grid(True, linestyle='--', alpha=0.7)
-plt.axhline(y=0, color='yellow', linestyle='-', linewidth=0.5, alpha=0.6)
+    # Adjust axes
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.axhline(y=0, color=theme['zero_line'], linestyle='-', linewidth=0.5, alpha=0.6)
 
-# Axis limits 
-ax = plt.gca()
-ax.set_xlim([datetime(2018, 1, 1), datetime(2027, 1, 1)])
-ax.set_ylim([-15000, 150000])       # Instead of [-10000, 200000]      
+    # Axis limits 
+    ax = plt.gca()
+    ax.set_xlim([datetime(2018, 1, 1), datetime(2027, 6, 1)])
+    ax.set_ylim([-15000, 250000])
 
-# Adjust layout to prevent label cutoff
-plt.tight_layout(pad=7)
-plt.savefig('training-tokens.png')
+
+    # Adjust layout to prevent label cutoff
+    plt.tight_layout(pad=7)
+    plt.savefig(theme['filename'])
+
+
+for theme in THEMES.values():
+    plot(theme)
 plt.show()
